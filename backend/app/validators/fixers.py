@@ -57,16 +57,27 @@ def apply_fixes(content: str) -> tuple[str, list[str]]:
     valid YAML or isn't a mapping, returns it unchanged with no fixes applied
     — /fix never invents structure that isn't already there.
     """
+def apply_fixes(content: str) -> tuple[str, list[str]]:
+    """
+    Returns (fixed_content, applied_fix_descriptions). If the content isn't
+    valid YAML, returns it unchanged with no fixes applied — /fix never
+    invents structure that isn't already there.
+
+    Supports multi-document YAML (separated by '---'). Only the first
+    document is patched, matching what /validate actually checks; later
+    documents are carried through unchanged.
+    """
     applied: list[str] = []
 
     try:
-        stream_in = content
-        doc = _yaml.load(stream_in)
+        docs = list(_yaml.load_all(content))
     except Exception:
         return content, applied
 
-    if not isinstance(doc, dict):
+    if not docs or not isinstance(docs[0], dict):
         return content, applied
+
+    doc = docs[0]
 
     kind = doc.get("kind")
     spec = _as_map(doc.get("spec"))
@@ -127,5 +138,5 @@ def apply_fixes(content: str) -> tuple[str, list[str]]:
     import io
 
     buffer = io.StringIO()
-    _yaml.dump(doc, buffer)
+    _yaml.dump_all(docs, buffer)
     return buffer.getvalue(), applied
