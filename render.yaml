@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: kubepilot-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      # Set to your deployed Netlify URL after the frontend is live,
+      # e.g. https://kubepilot.netlify.app — enables CORS for it.
+      - key: FRONTEND_ORIGIN
+        sync: false
