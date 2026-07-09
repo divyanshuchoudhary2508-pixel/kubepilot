@@ -93,25 +93,7 @@ export function HomePage() {
     if (model) monaco.editor.setModelMarkers(model, "kubepilot", []);
   }, []);
 
-  // ------------------------------------------------------------------ //
-  // Validate: set markers when done
-  // ------------------------------------------------------------------ //
-  const handleValidate = useCallback(async () => {
-    clearMonacoMarkers();
-    await runValidation();
-  }, [runValidation, clearMonacoMarkers]);
 
-  // Whenever validationResult updates (after a run), push markers.
-  // We do this via a useEffect-like pattern inside the component.
-  // Actually, because runValidation is awaited in handleValidate, we can
-  // just set markers right after — but validationResult is stale in the
-  // callback. Instead we use a ref-based approach in the ValidationResults
-  // render path: the parent just re-renders and calls setMonacoMarkers via
-  // a useEffect triggered by validationResult change.
-  // Simpler: set markers inline after runValidation resolves.
-  // The hook already updates validationResult state; we watch it via a
-  // separate effect declared inline. Since hooks can't be called inside
-  // callbacks, we handle this with a small helper below.
 
   // ------------------------------------------------------------------ //
   // Click-to-jump

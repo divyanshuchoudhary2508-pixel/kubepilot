@@ -1,4 +1,4 @@
-import { CheckCircle2, FileText, Sparkles, XCircle } from "lucide-react";
+import { CheckCircle2, Sparkles, XCircle } from "lucide-react";
 import type { ValidationResponse, FixResponse } from "@/types";
 import { getScoreColor } from "@/utils";
 import { ErrorCard } from "./ErrorCard";
