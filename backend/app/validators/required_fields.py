@@ -13,7 +13,9 @@ from app.validators.line_finder import get_line
 REQUIRED_TOP_LEVEL_FIELDS = ["apiVersion", "kind", "metadata", "spec"]
 
 
-def check_required_fields(doc: Any, content: str) -> tuple[list[Issue], list[str]]:
+def check_required_fields(
+    doc: Any, content: str, doc_index: int = 0
+) -> tuple[list[Issue], list[str]]:
     """
     Returns (issues, passed_checks) for the top-level required fields.
     """
@@ -28,6 +30,7 @@ def check_required_fields(doc: Any, content: str) -> tuple[list[Issue], list[str
                 title="Manifest is not a mapping",
                 message="A Kubernetes manifest must be a YAML mapping (key/value document), not a list or scalar.",
                 suggestion="Ensure the document starts with top-level keys like 'apiVersion:' and 'kind:'.",
+                document_index=doc_index if doc_index > 0 else None,
             )
         )
         return issues, passed
@@ -37,11 +40,12 @@ def check_required_fields(doc: Any, content: str) -> tuple[list[Issue], list[str
         if value in (None, "", {}):
             issues.append(
                 Issue(
-                    line=get_line(content, []),
+                    line=get_line(content, [], doc_index),
                     severity="high",
                     title=f"Missing '{field}'",
                     message=f"Top-level '{field}' field is required on every Kubernetes manifest.",
                     suggestion=f"Add a top-level '{field}:' field.",
+                    document_index=doc_index if doc_index > 0 else None,
                 )
             )
         else:
@@ -52,11 +56,12 @@ def check_required_fields(doc: Any, content: str) -> tuple[list[Issue], list[str
         if not metadata.get("name"):
             issues.append(
                 Issue(
-                    line=get_line(content, ["metadata"]),
+                    line=get_line(content, ["metadata"], doc_index),
                     severity="high",
                     title="Missing metadata.name",
                     message="metadata.name is required to identify the resource.",
                     suggestion="Add 'name: <resource-name>' under metadata.",
+                    document_index=doc_index if doc_index > 0 else None,
                 )
             )
         else:

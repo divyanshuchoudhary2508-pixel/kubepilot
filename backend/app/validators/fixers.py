@@ -13,10 +13,14 @@ Only fixes with an unambiguous, mechanical answer are applied:
 Anything that would require guessing the user's intent — a container's name,
 its image, probe paths, port numbers — is intentionally left alone and stays
 flagged by /validate instead.
+
+Multi-document YAML (separated by '---') is fully supported: each document
+is patched independently and the entire stream is re-emitted in order.
 """
 
 from __future__ import annotations
 
+import io
 from typing import Any
 
 from ruamel.yaml import YAML
@@ -51,33 +55,10 @@ def _find_containers(doc: CommentedMap) -> list[Any]:
     return containers if isinstance(containers, list) else []
 
 
-def apply_fixes(content: str) -> tuple[str, list[str]]:
-    """
-    Returns (fixed_content, applied_fix_descriptions). If the content isn't
-    valid YAML or isn't a mapping, returns it unchanged with no fixes applied
-    — /fix never invents structure that isn't already there.
-    """
-def apply_fixes(content: str) -> tuple[str, list[str]]:
-    """
-    Returns (fixed_content, applied_fix_descriptions). If the content isn't
-    valid YAML, returns it unchanged with no fixes applied — /fix never
-    invents structure that isn't already there.
-
-    Supports multi-document YAML (separated by '---'). Only the first
-    document is patched, matching what /validate actually checks; later
-    documents are carried through unchanged.
-    """
-    applied: list[str] = []
-
-    try:
-        docs = list(_yaml.load_all(content))
-    except Exception:
-        return content, applied
-
-    if not docs or not isinstance(docs[0], dict):
-        return content, applied
-
-    doc = docs[0]
+def _fix_doc(doc: CommentedMap, applied: list[str]) -> None:
+    """Apply all mechanical fixes to a single parsed document in-place."""
+    if not isinstance(doc, dict):
+        return
 
     kind = doc.get("kind")
     spec = _as_map(doc.get("spec"))
@@ -132,10 +113,31 @@ def apply_fixes(content: str) -> tuple[str, list[str]]:
             resources["limits"] = CommentedMap(DEFAULT_LIMITS)
             applied.append(f"Added default resources.limits for container '{name}'")
 
-    if not applied:
+
+def apply_fixes(content: str) -> tuple[str, list[str]]:
+    """
+    Returns (fixed_content, applied_fix_descriptions). If the content isn't
+    valid YAML, returns it unchanged with no fixes applied — /fix never
+    invents structure that isn't already there.
+
+    Supports multi-document YAML (separated by '---'). Every document is
+    patched independently; all documents are re-emitted in the original order.
+    """
+    applied: list[str] = []
+
+    try:
+        docs = list(_yaml.load_all(content))
+    except Exception:
         return content, applied
 
-    import io
+    if not docs:
+        return content, applied
+
+    for doc in docs:
+        _fix_doc(doc, applied)
+
+    if not applied:
+        return content, applied
 
     buffer = io.StringIO()
     _yaml.dump_all(docs, buffer)

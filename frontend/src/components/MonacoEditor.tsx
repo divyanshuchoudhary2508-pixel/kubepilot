@@ -1,14 +1,29 @@
-import Editor, { type OnChange } from "@monaco-editor/react";
+import { useRef } from "react";
+import Editor, { type OnChange, type OnMount } from "@monaco-editor/react";
+import type * as MonacoType from "monaco-editor";
+
+export type MonacoEditor = MonacoType.editor.IStandaloneCodeEditor;
+export type MonacoInstance = typeof MonacoType;
 
 interface MonacoEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onEditorMount?: (editor: MonacoEditor, monaco: MonacoInstance) => void;
   height?: string;
 }
 
-export function MonacoEditor({ value, onChange, height = "420px" }: MonacoEditorProps) {
+export function MonacoEditor({
+  value,
+  onChange,
+  onEditorMount,
+  height = "420px",
+}: MonacoEditorProps) {
   const handleChange: OnChange = (newValue) => {
     onChange(newValue ?? "");
+  };
+
+  const handleMount: OnMount = (editor, monaco) => {
+    onEditorMount?.(editor, monaco);
   };
 
   return (
@@ -24,6 +39,7 @@ export function MonacoEditor({ value, onChange, height = "420px" }: MonacoEditor
         theme="vs-dark"
         value={value}
         onChange={handleChange}
+        onMount={handleMount}
         options={{
           fontSize: 13,
           fontFamily: "'JetBrains Mono', Menlo, monospace",

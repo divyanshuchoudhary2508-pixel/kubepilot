@@ -5,6 +5,9 @@ user. yaml.compose() gives us the underlying Node tree, which *does* carry
 start_mark.line for every node. This module bridges the two: callers pass a
 "path" (e.g. ["spec", "selector"] or ["spec", "template", "spec",
 "containers", 0]) and get back the best line number we can find for it.
+
+For multi-document YAML, pass doc_index to select which document's node tree
+to walk. The default (doc_index=0) is correct for single-document inputs.
 """
 
 from __future__ import annotations
@@ -16,19 +19,30 @@ import yaml
 PathSegment = Union[str, int]
 
 
-def get_line(content: str, path: list[PathSegment]) -> Optional[int]:
+def get_line(
+    content: str,
+    path: list[PathSegment],
+    doc_index: int = 0,
+) -> Optional[int]:
     """
     Walk the composed YAML node tree along `path` and return the 1-indexed
     line number of the deepest node reached. If the full path doesn't exist,
     returns the line of the deepest ancestor that does (useful for pointing
     at "where this missing field should go"). Returns None only if even the
     document root can't be composed (e.g. invalid YAML).
+
+    doc_index selects which document to walk in a multi-document stream.
+    For single-document YAML, doc_index=0 is always correct.
     """
     try:
-        node = yaml.compose(content)
+        nodes = list(yaml.compose_all(content))
     except yaml.YAMLError:
         return None
 
+    if not nodes or doc_index >= len(nodes):
+        return None
+
+    node = nodes[doc_index]
     if node is None:
         return None
 

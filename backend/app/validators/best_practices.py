@@ -36,9 +36,14 @@ def _find_containers(doc: dict) -> tuple[list[Any], list[str]]:
     return (containers if isinstance(containers, list) else []), path
 
 
-def check_best_practices(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
+def check_best_practices(
+    doc: dict, content: str, doc_index: int = 0
+) -> tuple[list[Issue], list[str]]:
     warnings: list[Issue] = []
     passed: list[str] = []
+
+    def _issue(**kwargs) -> Issue:
+        return Issue(**kwargs, document_index=doc_index if doc_index > 0 else None)
 
     kind = doc.get("kind")
     spec = doc.get("spec") if isinstance(doc.get("spec"), dict) else {}
@@ -47,8 +52,8 @@ def check_best_practices(doc: dict, content: str) -> tuple[list[Issue], list[str
     metadata = doc.get("metadata") if isinstance(doc.get("metadata"), dict) else {}
     if not metadata.get("labels"):
         warnings.append(
-            Issue(
-                line=get_line(content, ["metadata"]),
+            _issue(
+                line=get_line(content, ["metadata"], doc_index),
                 severity="low",
                 title="Missing labels",
                 message="metadata.labels is empty or missing. Labels make resources easier to select, filter, and organize.",
@@ -62,8 +67,8 @@ def check_best_practices(doc: dict, content: str) -> tuple[list[Issue], list[str
     if kind in {"Deployment", "StatefulSet", "ReplicaSet"}:
         if spec.get("replicas") is None:
             warnings.append(
-                Issue(
-                    line=get_line(content, ["spec"]),
+                _issue(
+                    line=get_line(content, ["spec"], doc_index),
                     severity="low",
                     title="Missing replicas",
                     message="spec.replicas is not set; Kubernetes defaults to 1, but being explicit avoids surprises.",
@@ -88,8 +93,8 @@ def check_best_practices(doc: dict, content: str) -> tuple[list[Issue], list[str
         if isinstance(image, str):
             if image.endswith(":latest") or ":" not in image:
                 warnings.append(
-                    Issue(
-                        line=get_line(content, container_path + ["image"]),
+                    _issue(
+                        line=get_line(content, container_path + ["image"], doc_index),
                         severity="medium",
                         title=f"Container '{name}' uses a floating tag",
                         message="Using ':latest' (or no tag at all) makes deployments non-reproducible.",
@@ -100,8 +105,8 @@ def check_best_practices(doc: dict, content: str) -> tuple[list[Issue], list[str
         resources = container.get("resources") if isinstance(container.get("resources"), dict) else {}
         if not resources.get("requests"):
             warnings.append(
-                Issue(
-                    line=get_line(content, container_path),
+                _issue(
+                    line=get_line(content, container_path, doc_index),
                     severity="medium",
                     title=f"Container '{name}' missing resource requests",
                     message="No resources.requests set. The scheduler can't make good placement decisions without it.",
@@ -110,8 +115,8 @@ def check_best_practices(doc: dict, content: str) -> tuple[list[Issue], list[str
             )
         if not resources.get("limits"):
             warnings.append(
-                Issue(
-                    line=get_line(content, container_path),
+                _issue(
+                    line=get_line(content, container_path, doc_index),
                     severity="medium",
                     title=f"Container '{name}' missing resource limits",
                     message="No resources.limits set. A single container could consume unbounded node resources.",
@@ -121,8 +126,8 @@ def check_best_practices(doc: dict, content: str) -> tuple[list[Issue], list[str
 
         if not container.get("livenessProbe"):
             warnings.append(
-                Issue(
-                    line=get_line(content, container_path),
+                _issue(
+                    line=get_line(content, container_path, doc_index),
                     severity="low",
                     title=f"Container '{name}' missing livenessProbe",
                     message="Without a livenessProbe, Kubernetes can't detect and restart a hung container.",
@@ -131,8 +136,8 @@ def check_best_practices(doc: dict, content: str) -> tuple[list[Issue], list[str
             )
         if not container.get("readinessProbe"):
             warnings.append(
-                Issue(
-                    line=get_line(content, container_path),
+                _issue(
+                    line=get_line(content, container_path, doc_index),
                     severity="low",
                     title=f"Container '{name}' missing readinessProbe",
                     message="Without a readinessProbe, traffic may be routed to a container before it's ready.",

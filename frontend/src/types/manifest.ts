@@ -6,6 +6,8 @@ export interface Issue {
   title: string;
   message: string;
   suggestion: string | null;
+  /** 0-indexed document position in a multi-doc YAML stream. Null for single-doc. */
+  document_index: number | null;
 }
 
 export interface ValidationResponse {
@@ -14,6 +16,8 @@ export interface ValidationResponse {
   warnings: Issue[];
   passed_checks: string[];
   score: number;
+  /** Number of YAML documents that were validated */
+  document_count: number;
 }
 
 export interface FixResponse {

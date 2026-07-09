@@ -30,6 +30,10 @@ class Issue(BaseModel):
     title: str
     message: str
     suggestion: Optional[str] = None
+    document_index: Optional[int] = Field(
+        default=None,
+        description="0-indexed document position in a multi-document YAML stream. None for single-doc.",
+    )
 
 
 class ValidationResponse(BaseModel):
@@ -40,6 +44,7 @@ class ValidationResponse(BaseModel):
     warnings: list[Issue] = Field(default_factory=list)
     passed_checks: list[str] = Field(default_factory=list)
     score: int = Field(..., ge=0, le=100)
+    document_count: int = Field(default=1, description="Number of YAML documents validated")
 
 
 class FixResponse(BaseModel):

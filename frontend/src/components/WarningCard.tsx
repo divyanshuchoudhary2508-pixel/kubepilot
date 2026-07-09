@@ -3,8 +3,9 @@ import { IssueCard } from "./IssueCard";
 
 interface WarningCardProps {
   issue: Issue;
+  onLineClick?: (line: number) => void;
 }
 
-export function WarningCard({ issue }: WarningCardProps) {
-  return <IssueCard issue={issue} />;
+export function WarningCard({ issue, onLineClick }: WarningCardProps) {
+  return <IssueCard issue={issue} onLineClick={onLineClick} />;
 }

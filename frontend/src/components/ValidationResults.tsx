@@ -1,4 +1,4 @@
-import { CheckCircle2, Sparkles, XCircle } from "lucide-react";
+import { CheckCircle2, FileText, Sparkles, XCircle } from "lucide-react";
 import type { ValidationResponse, FixResponse } from "@/types";
 import { getScoreColor } from "@/utils";
 import { ErrorCard } from "./ErrorCard";
@@ -12,9 +12,17 @@ interface ValidationResultsProps {
   fixStatus: "idle" | "loading" | "success" | "error";
   fixResult: FixResponse | null;
   fixError: string | null;
+  onLineClick?: (line: number) => void;
 }
 
-export function ValidationResults({ result, onFix, fixStatus, fixResult, fixError }: ValidationResultsProps) {
+export function ValidationResults({
+  result,
+  onFix,
+  fixStatus,
+  fixResult,
+  fixError,
+  onLineClick,
+}: ValidationResultsProps) {
   const hasIssues = result.errors.length > 0 || result.warnings.length > 0;
 
   return (
@@ -32,13 +40,21 @@ export function ValidationResults({ result, onFix, fixStatus, fixResult, fixErro
               {result.valid ? "Manifest is valid" : "Manifest has blocking errors"}
             </p>
             <p className="text-xs text-neutral-500">
-              {result.errors.length} error{result.errors.length === 1 ? "" : "s"} · {result.warnings.length} warning
-              {result.warnings.length === 1 ? "" : "s"} · {result.passed_checks.length} passed
+              {result.errors.length} error{result.errors.length === 1 ? "" : "s"} ·{" "}
+              {result.warnings.length} warning{result.warnings.length === 1 ? "" : "s"} ·{" "}
+              {result.passed_checks.length} passed
+              {result.document_count > 1 ? (
+                <span className="ml-2 rounded-full bg-surface-700 px-2 py-0.5 text-[11px] font-mono">
+                  {result.document_count} docs
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
         <div className="text-right">
-          <p className={`text-2xl font-semibold leading-none ${getScoreColor(result.score)}`}>{result.score}</p>
+          <p className={`text-2xl font-semibold leading-none ${getScoreColor(result.score)}`}>
+            {result.score}
+          </p>
           <p className="mt-1 text-[11px] uppercase tracking-wide text-neutral-500">Score</p>
         </div>
       </div>
@@ -50,7 +66,7 @@ export function ValidationResults({ result, onFix, fixStatus, fixResult, fixErro
             Errors ({result.errors.length})
           </h3>
           {result.errors.map((issue, index) => (
-            <ErrorCard key={`error-${index}`} issue={issue} />
+            <ErrorCard key={`error-${index}`} issue={issue} onLineClick={onLineClick} />
           ))}
         </div>
       ) : null}
@@ -62,7 +78,7 @@ export function ValidationResults({ result, onFix, fixStatus, fixResult, fixErro
             Warnings ({result.warnings.length})
           </h3>
           {result.warnings.map((issue, index) => (
-            <WarningCard key={`warning-${index}`} issue={issue} />
+            <WarningCard key={`warning-${index}`} issue={issue} onLineClick={onLineClick} />
           ))}
         </div>
       ) : null}
@@ -115,7 +131,8 @@ export function ValidationResults({ result, onFix, fixStatus, fixResult, fixErro
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-medium text-neutral-100">
-                  Applied {fixResult.applied_fixes.length} fix{fixResult.applied_fixes.length === 1 ? "" : "es"}
+                  Applied {fixResult.applied_fixes.length} fix
+                  {fixResult.applied_fixes.length === 1 ? "" : "es"}
                 </p>
                 <DownloadButton content={fixResult.fixed_content} />
               </div>

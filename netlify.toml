@@ -6,8 +6,12 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Single-page app: no client-side router is used (KubePilot is intentionally
-# one page), so no history-fallback redirect is needed. Kept minimal on purpose.
+# SPA fallback: all routes (including /rules) serve index.html so the
+# client-side router can pick up the path.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 [[headers]]
   for = "/assets/*"

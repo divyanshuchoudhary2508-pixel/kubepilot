@@ -22,9 +22,14 @@ def _get_path(doc: dict, path: list[str]) -> Any:
     return node
 
 
-def check_deployment(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
+def check_deployment(
+    doc: dict, content: str, doc_index: int = 0
+) -> tuple[list[Issue], list[str]]:
     issues: list[Issue] = []
     passed: list[str] = []
+
+    def _issue(**kwargs) -> Issue:
+        return Issue(**kwargs, document_index=doc_index if doc_index > 0 else None)
 
     spec = doc.get("spec")
     if not isinstance(spec, dict):
@@ -34,8 +39,8 @@ def check_deployment(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
     match_labels = _get_path(doc, ["spec", "selector", "matchLabels"])
     if not isinstance(match_labels, dict) or not match_labels:
         issues.append(
-            Issue(
-                line=get_line(content, ["spec"]),
+            _issue(
+                line=get_line(content, ["spec"], doc_index),
                 severity="high",
                 title="Missing selector",
                 message="Deployment requires spec.selector.matchLabels.",
@@ -48,8 +53,8 @@ def check_deployment(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
     template = spec.get("template")
     if not isinstance(template, dict):
         issues.append(
-            Issue(
-                line=get_line(content, ["spec"]),
+            _issue(
+                line=get_line(content, ["spec"], doc_index),
                 severity="high",
                 title="Missing template",
                 message="Deployment requires spec.template (the Pod template).",
@@ -65,8 +70,8 @@ def check_deployment(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
     if isinstance(match_labels, dict) and match_labels and isinstance(template_labels, dict):
         if not match_labels.items() <= template_labels.items():
             issues.append(
-                Issue(
-                    line=get_line(content, ["spec", "template", "metadata", "labels"]),
+                _issue(
+                    line=get_line(content, ["spec", "template", "metadata", "labels"], doc_index),
                     severity="high",
                     title="Selector does not match template labels",
                     message="spec.selector.matchLabels must be a subset of spec.template.metadata.labels.",
@@ -79,8 +84,8 @@ def check_deployment(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
     containers = _get_path(doc, ["spec", "template", "spec", "containers"])
     if not isinstance(containers, list) or len(containers) == 0:
         issues.append(
-            Issue(
-                line=get_line(content, ["spec", "template", "spec"]),
+            _issue(
+                line=get_line(content, ["spec", "template", "spec"], doc_index),
                 severity="high",
                 title="Missing containers",
                 message="Deployment requires at least one container under spec.template.spec.containers.",
@@ -93,8 +98,8 @@ def check_deployment(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
             container_path = ["spec", "template", "spec", "containers", index]
             if not isinstance(container, dict):
                 issues.append(
-                    Issue(
-                        line=get_line(content, container_path),
+                    _issue(
+                        line=get_line(content, container_path, doc_index),
                         severity="high",
                         title=f"Container #{index + 1} is invalid",
                         message="Each entry under containers must be a mapping with at least 'name' and 'image'.",
@@ -104,8 +109,8 @@ def check_deployment(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
                 continue
             if not container.get("name"):
                 issues.append(
-                    Issue(
-                        line=get_line(content, container_path),
+                    _issue(
+                        line=get_line(content, container_path, doc_index),
                         severity="high",
                         title=f"Container #{index + 1} missing name",
                         message="Every container must have a 'name'.",
@@ -114,8 +119,8 @@ def check_deployment(doc: dict, content: str) -> tuple[list[Issue], list[str]]:
                 )
             if not container.get("image"):
                 issues.append(
-                    Issue(
-                        line=get_line(content, container_path),
+                    _issue(
+                        line=get_line(content, container_path, doc_index),
                         severity="high",
                         title=f"Container '{container.get('name', index + 1)}' missing image",
                         message="Every container must have an 'image'.",

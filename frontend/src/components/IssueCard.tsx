@@ -4,15 +4,24 @@ import { getSeverityStyle } from "@/utils";
 
 interface IssueCardProps {
   issue: Issue;
+  onLineClick?: (line: number) => void;
 }
 
 /**
  * Renders a single Issue. ErrorCard and WarningCard are thin, semantically
  * distinct wrappers around this — the visual language (severity dot, line
  * number, suggestion) is identical, so the rendering logic lives here once.
+ *
+ * When onLineClick is provided, the line badge becomes a clickable button
+ * that scrolls the Monaco editor to that line.
  */
-export function IssueCard({ issue }: IssueCardProps) {
+export function IssueCard({ issue, onLineClick }: IssueCardProps) {
   const style = getSeverityStyle(issue.severity);
+
+  const docLabel =
+    issue.document_index !== null && issue.document_index !== undefined
+      ? `Doc ${issue.document_index + 1}`
+      : null;
 
   return (
     <div className={`rounded-xl border ${style.borderClass} ${style.bgClass} p-4`}>
@@ -27,10 +36,26 @@ export function IssueCard({ issue }: IssueCardProps) {
               <span className={`h-1.5 w-1.5 rounded-full ${style.dotClass}`} />
               {style.label}
             </span>
-            {issue.line !== null ? (
-              <span className="rounded-full bg-surface-700 px-2 py-0.5 text-[11px] font-mono text-neutral-400">
-                line {issue.line}
+            {docLabel ? (
+              <span className="rounded-full bg-surface-700 px-2 py-0.5 text-[11px] font-mono text-neutral-500">
+                {docLabel}
               </span>
+            ) : null}
+            {issue.line !== null ? (
+              onLineClick ? (
+                <button
+                  type="button"
+                  onClick={() => onLineClick(issue.line!)}
+                  title="Jump to line in editor"
+                  className="rounded-full bg-surface-700 px-2 py-0.5 text-[11px] font-mono text-neutral-400 transition-colors hover:bg-accent/20 hover:text-accent cursor-pointer"
+                >
+                  line {issue.line}
+                </button>
+              ) : (
+                <span className="rounded-full bg-surface-700 px-2 py-0.5 text-[11px] font-mono text-neutral-400">
+                  line {issue.line}
+                </span>
+              )
             ) : null}
           </div>
           <p className="mt-1.5 text-sm text-neutral-400">{issue.message}</p>

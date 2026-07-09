@@ -13,13 +13,18 @@ from app.validators.line_finder import get_line
 VALID_SERVICE_TYPES = {"ClusterIP", "NodePort", "LoadBalancer", "ExternalName"}
 
 
-def check_service(doc: dict, content: str) -> tuple[list[Issue], list[Issue], list[str]]:
+def check_service(
+    doc: dict, content: str, doc_index: int = 0
+) -> tuple[list[Issue], list[Issue], list[str]]:
     """
     Returns (errors, warnings, passed_checks).
     """
     errors: list[Issue] = []
     warnings: list[Issue] = []
     passed: list[str] = []
+
+    def _issue(**kwargs) -> Issue:
+        return Issue(**kwargs, document_index=doc_index if doc_index > 0 else None)
 
     spec = doc.get("spec")
     if not isinstance(spec, dict):
@@ -28,8 +33,8 @@ def check_service(doc: dict, content: str) -> tuple[list[Issue], list[Issue], li
     selector = spec.get("selector")
     if not isinstance(selector, dict) or not selector:
         warnings.append(
-            Issue(
-                line=get_line(content, ["spec"]),
+            _issue(
+                line=get_line(content, ["spec"], doc_index),
                 severity="medium",
                 title="Missing selector",
                 message="Service has no spec.selector. This is valid only for headless/ExternalName services "
@@ -43,8 +48,8 @@ def check_service(doc: dict, content: str) -> tuple[list[Issue], list[Issue], li
     ports = spec.get("ports")
     if not isinstance(ports, list) or len(ports) == 0:
         errors.append(
-            Issue(
-                line=get_line(content, ["spec"]),
+            _issue(
+                line=get_line(content, ["spec"], doc_index),
                 severity="high",
                 title="Missing ports",
                 message="Service requires at least one entry in spec.ports.",
@@ -57,8 +62,8 @@ def check_service(doc: dict, content: str) -> tuple[list[Issue], list[Issue], li
             port_path = ["spec", "ports", index]
             if not isinstance(port_entry, dict) or port_entry.get("port") is None:
                 errors.append(
-                    Issue(
-                        line=get_line(content, port_path),
+                    _issue(
+                        line=get_line(content, port_path, doc_index),
                         severity="high",
                         title=f"Port entry #{index + 1} missing 'port'",
                         message="Each entry under spec.ports must specify a numeric 'port'.",
@@ -69,8 +74,8 @@ def check_service(doc: dict, content: str) -> tuple[list[Issue], list[Issue], li
     service_type = spec.get("type")
     if not service_type:
         warnings.append(
-            Issue(
-                line=get_line(content, ["spec"]),
+            _issue(
+                line=get_line(content, ["spec"], doc_index),
                 severity="low",
                 title="Service type not specified",
                 message="spec.type is not set; Kubernetes will default to ClusterIP.",
@@ -79,8 +84,8 @@ def check_service(doc: dict, content: str) -> tuple[list[Issue], list[Issue], li
         )
     elif service_type not in VALID_SERVICE_TYPES:
         errors.append(
-            Issue(
-                line=get_line(content, ["spec", "type"]),
+            _issue(
+                line=get_line(content, ["spec", "type"], doc_index),
                 severity="medium",
                 title="Unrecognized service type",
                 message=f"'{service_type}' is not a standard Service type.",
